@@ -111,7 +111,7 @@ nightlight schedule off
 In addition to a CLI, `nightlight` can be pulled-in as a dependency for other Rust crates:
 
 ```
-nightlight = "0.3.1"
+nightlight = "1.0.0"
 ```
 
 Here's an example `fn` that toggles Night Shift off,
