@@ -12,6 +12,7 @@ fn print_usage(program: &String) {
     println!("  off                      Turn Night Shift off (until scheduled start)");
     println!("  status                   View current on/off status");
     println!("  toggle                   Toggle on or off based on current status");
+    println!("  <noargs>                 Toggle on or off based on current status");
     println!("\ncolor temperature:");
     println!("  temp                     View temperature preference");
     println!("  temp <0-100|3500K-6500K> Set temperature preference (does not affect on/off)");
@@ -20,6 +21,7 @@ fn print_usage(program: &String) {
     println!("  schedule start           Start schedule from sunset to sunrise");
     println!("  schedule <from> <to>     Start a custom schedule (12 or 24-hour time format)");
     println!("  schedule stop            Stop the current schedule");
+    println!("  help                     Print this help menu");
 }
 
 fn print_status(client: NightLight) -> Result<(), String> {
@@ -49,13 +51,10 @@ fn toggle(client: NightLight) -> Result<(), String> {
 fn main() {
     let args: Vec<String> = args().collect();
 
-    if args.len() < 2 {
-        print_usage(&args[0]);
-        exit(1);
-    }
-
     let client = NightLight::new();
-    if args.len() == 2 && args[1] == "on" {
+    if args.len() == 1 {
+        toggle(client).unwrap_or_else(|e| error(e));
+    } else if args.len() == 2 && args[1] == "on" {
         client.on().unwrap_or_else(|e| error(e));
     } else if args.len() == 2 && args[1] == "off" {
         client.off().unwrap_or_else(|e| error(e));
@@ -86,6 +85,8 @@ fn main() {
     } else if args.len() == 3 && args[1] == "temp" {
         let temp = temp_userinput(args[2].clone());
         client.set_temp(temp).unwrap_or_else(|e| error(e));
+    } else if args.len() == 2 && args[1] == "help" {
+        print_usage(&args[0]);
     } else {
         print_usage(&args[0]);
     }
