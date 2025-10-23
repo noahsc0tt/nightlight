@@ -1,26 +1,31 @@
 use nightlight::{NightLight, Schedule, Status, Time};
+#[cfg(target_os = "macos")]
+use nightlight::ColorFilters;
 use std::env::args;
 use std::process::exit;
 
 fn print_usage(program: &String) {
     println!("{} v{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
     println!("  {}\n", env!("CARGO_PKG_DESCRIPTION"));
-    println!("usage:\n  {} [--help] <command> [<args>]\n", program);
+    println!("usage:\n  {} [--help] [--filters|-f] <command> [<args>]\n", program);
     println!("Available Commands By Category:");
-    println!("\nmanual on/off control:");
-    println!("  on                       Turn Night Shift on (until scheduled stop)");
-    println!("  off                      Turn Night Shift off (until scheduled start)");
+    println!("\nmanual on/off control (Night Shift by default, Color Filters with -f):");
+    println!("  on                       Turn on");
+    println!("  off                      Turn off");
     println!("  status                   View current on/off status");
     println!("  toggle                   Toggle on or off based on current status");
     println!("  <noargs>                 Toggle on or off based on current status");
-    println!("\ncolor temperature:");
+    println!("\nnight shift temperature:");
     println!("  temp                     View temperature preference");
     println!("  temp <0-100|3500K-6500K> Set temperature preference (does not affect on/off)");
-    println!("\nautomated schedule:");
+    println!("\nautomated schedule (Night Shift only):");
     println!("  schedule                 View the current schedule");
     println!("  schedule start           Start schedule from sunset to sunrise");
     println!("  schedule <from> <to>     Start a custom schedule (12 or 24-hour time format)");
     println!("  schedule stop            Stop the current schedule");
+    println!("\ncolor filters (use with -f/--filters):");
+    println!("  intensity                View intensity (0-100)");
+    println!("  intensity <0-100>        Set intensity (fixed orange tint)");
     println!("  help                     Print this help menu");
 }
 
@@ -50,6 +55,38 @@ fn toggle(client: NightLight) -> Result<(), String> {
 
 fn main() {
     let args: Vec<String> = args().collect();
+
+    // Flag detection: -f or --filters switches mode to Color Filters
+    let (use_filters, idx) = if args.len() > 1 && (args[1] == "-f" || args[1] == "--filters") {
+        (true, 2)
+    } else {
+        (false, 1)
+    };
+
+    if use_filters {
+        let filters = ColorFilters::new();
+        if args.len() == idx {
+            filters.toggle().unwrap_or_else(|e| error(e));
+        } else if args.len() == idx + 1 && args[idx] == "on" {
+            filters.on().unwrap_or_else(|e| error(e));
+        } else if args.len() == idx + 1 && args[idx] == "off" {
+            filters.off().unwrap_or_else(|e| error(e));
+        } else if args.len() == idx + 1 && args[idx] == "toggle" {
+            filters.toggle().unwrap_or_else(|e| error(e));
+        } else if args.len() == idx + 1 && args[idx] == "status" {
+            match filters.status() { Ok(s) => println!("{}", s), Err(e) => error(e) }
+        } else if args.len() == idx + 1 && args[idx] == "intensity" {
+            match filters.get_intensity() { Ok(v) => println!("{}", v), Err(e) => error(e) }
+        } else if args.len() == idx + 2 && args[idx] == "intensity" {
+            let val = args[idx+1].parse::<i32>().unwrap_or(-1);
+            filters.set_intensity(val).unwrap_or_else(|e| error(e));
+        } else if args.len() == idx + 1 && args[idx] == "help" {
+            print_usage(&args[0]);
+        } else {
+            print_usage(&args[0]);
+        }
+        return;
+    }
 
     let client = NightLight::new();
     if args.len() == 1 {

@@ -3,13 +3,54 @@
 mod os;
 mod schedule;
 mod status;
-
-pub use schedule::{Schedule, Time};
-pub use status::Status;
-
-pub struct NightLight {
-    client: os::Client,
+ 
+ pub use schedule::{Schedule, Time};
+ pub use status::Status;
+ 
+ pub struct NightLight {
+     client: os::Client,
+ }
+ 
+#[cfg(target_os = "macos")]
+pub struct ColorFilters {
+    client: os::Filters,
 }
+ 
+#[cfg(target_os = "macos")]
+impl ColorFilters {
+    pub fn new() -> ColorFilters {
+        ColorFilters { client: os::Filters::new() }
+    }
+ 
+    pub fn on(&self) -> Result<(), String> {
+        self.client.set_fixed_orange_tint()?;
+        self.client.set_enabled(true)
+    }
+ 
+    pub fn off(&self) -> Result<(), String> {
+        self.client.set_enabled(false)
+    }
+ 
+    pub fn toggle(&self) -> Result<(), String> {
+        match self.status()? { Status::On => self.off(), Status::Off => self.on() }
+    }
+ 
+    pub fn set_intensity(&self, percent: i32) -> Result<(), String> {
+        if percent < 0 || percent > 100 { return Err("Intensity must be 0-100".to_string()); }
+        self.client.set_fixed_orange_tint()?;
+        self.client.set_intensity(percent as f32 / 100.0)
+    }
+ 
+    pub fn get_intensity(&self) -> Result<i32, String> {
+        self.client.get_intensity_percent()
+    }
+ 
+    pub fn status(&self) -> Result<Status, String> {
+        Ok(if self.client.get_enabled()? { Status::On } else { Status::Off })
+    }
+ }
+
+
 
 impl NightLight {
     pub fn new() -> NightLight {
